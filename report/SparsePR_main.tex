@@ -1,0 +1,164 @@
+\documentclass{article} % For LaTeX2e
+
+\input{latexdefs.tex}
+
+\begin{document}
+\renewcommand{\baselinestretch}{1}
+\title{Fourier Ptychography using Structured Sparsity}
+
+%\author{Gauri Jagatap \and Chinmay Hegde
+%\thanks{The authors are with the Electrical and Computer Engineering Department at Iowa State University, Ames, IA 50010. Email: \{gauri,chinmay\}@iastate.edu. }
+%}
+\date{}
+
+\maketitle
+
+%Abstract
+\begin{abstract}
+
+We consider the problem of super-resolution for sub-diffraction imaging. We try to adapt conventional Fourier ptychographic approaches, specifically the one described in \cite{holloway2016toward} for a subset of problems where the images to be acquired have an underlying structure. For the purpose of this study, we analyze primarily sparse images. We also extend our study to block sparse images. We find that such sparsity assumptions require fewer samples and are more feasible to implement.
+\end{abstract}
+
+\section{Background}
+
+Diffraction blurring is a common problem that is encountered in two scenarios of imaging - if the aperture of the lens used for imaging is too small; or alternatively if the object to be imaged is too far from the lens. The rays of light that interact with the end points of the camera aperture undergo diffraction, which leads to a diffraction pattern. The central disc of this pattern can have diameter exceeding the spatial resolution of the object/scene to be imaged. In such cases, one observes a diffraction blur. 
+
+This problem has been well studied in the context of Fourier ptychography for microscopy. Holloway et. al. in \cite{holloway2016toward} extended this model for long-distance imaging. The premise of the paper involves imaging a long-distance object using a series of sensing operations. The object is said to be illuminated using coherent light. A thin lens is placed right in front of it, leading to a phase shift, which transforms the image from a spatial domain one to a Fourier domain one. This Fourier domain image is acquired by an array of cameras with the aperture pupils placed in a square grid with significant overlap between consecutive lenses. The effective large aperture is called the synthetic aperture. The signal then undergoes an inverse Fourier transform (resultant phase shift from camera lens). This complex, spatial domain image is captured by the camera sensor. Since the sensor is only capable of estimating magnitude of the measurements, one ends up losing phase information. The entire sensing procedure has been described in Figure \ref{fig:setup}.
+
+\begin{figure}[!h]
+
+		\centering
+\includegraphics[width = 0.6\textwidth]{setup}
+\caption{Image used from \cite{holloway2016toward}}
+	\label{fig:setup}
+\end{figure}
+
+To recover the original image, without the effects of diffraction blur, one would need to invert the series of operations from magnitude-only measurements. This formulation fits perfectly into the mold of a phase retrieval problem. In \cite{holloway2016toward}, the authors have demonstrated super-resolution of diffraction-blurred images using an alternating minimization based approach. They refer to this method as an Iterative Error Reduction Algorithm (IERA).  
+
+Such methods have been popularly used in phase-retrieval literature and rely on estimating a good initialization, followed by alternatingly updating the magnitude and phase estimates. While the authors of the paper \cite{holloway2016toward} demonstrate a number of experiments on how the quality of reconstruction is affected by parameters such as amount of overlap between two consecutive cameras, size of each camera aperture, noise, etc, there is no mathematical analysis on how many samples are actually required for this kind of reconstruction. 
+
+\section{Proposed work}
+
+Through our previous analysis \cite{jagatap2017phase} we have found that introducing sparsity constraints (using our algorithm called CoPRAM) significantly lowers the number of samples required for the same quality of reconstruction. In future work, we aim to (i) establish a more formal bound on the actual number of measurements required for super-resolution (ii) design a better initialization (iii) study the variation of the sample complexity with sparsity level $s$. We support these claims through a set of experiments as demonstrated in Section \ref{sec:exp}.
+
+\section{Modeling sparsity and acquisition setup}
+The phase retrieval problem is modeled as follows. Operator $\A$ represents the measurement setup, prior to the absolute measurement step:
+\begin{align}
+\y_i = \abs{\A_i \x}.
+\end{align}
+where $i$ is an index that spans the number of cameras in a camera array grid ($i=[N^2]$, where we have an $N \times N$ camera grid).
+
+We want to recover signal/image $\x$ from measurements $\y_i$. If we choose to enforce a constraint on the sparsity of the signal in any basis, the recovery problem will be:
+\begin{gather} \label{eq:ls}
+\min_{\x} ~ \||\A \x| - \y\|_2, \\
+s.t. \zeronorm{\x} \leq s
+\end{gather}
+where $\x$ is the signal in the sparse domain and $\A$ is the modified measurement operator, which accounts for the domain transformation.
+
+The acquisition setup in \cite{holloway2016toward} is not designed to benefit from this sparsity constraint. In the following section we discuss some sub-sampling procedures which benefit from having a sparsity constraint, as compared to the standard IERA.
+
+\section{Experimental results} \label{sec:exp}
+ 
+\subsection{Uniform random subsampling} \label{subsec:exp1}
+Since we want to study the effect of sub-sampling, we first establish a sub-sampling strategy, which will be kept fixed for both types of signal models - one with sparsity constraint and one without.
+
+We construct a sub-sampling mask consisting of\textit{ $1$s and $0$s }which are picked up from a \textit{uniform random} distribution. The $1$s correspond to samples which are actually picked up for further analysis and $0$s corresponds to samples which are thrown away. The schematic diagram in Figure \ref{fig:flow} describes this sampling procedure.
+
+\begin{figure}[!t]	
+	\centering
+	\includegraphics[width = 1\textwidth]{flow}
+	\caption{Subsampling procedure. The green box indicates extra sub-sampling step. The camera index is denoted by $i$.}
+	\label{fig:flow}
+\end{figure}
+
+We describe the effect of enforcing the sparsity constraint in various domains as follows. We use two different datasets: (a) resolution chart (b) simulated image which is specifically block sparse. The parameters fed to the main algorithm are as follows: we used a $256\times256$ image of the Resolution Chart (resChart) as the ground truth. The camera array consists of $81 (9\times 9)$ cameras, each with aperture diameter $72.75$ and overlap of $0.72$. A subsampling factor of $0.3$ picks up $30\%$ of the original number of measurements. To implement this, we generated a mask consisting of $~30\%$ $1s$, and remaining $0s$, from a uniform random distribution. For the sparsity algorith, we enforce a sparsity of $s=0.25n$, where $n$ is the total size of the input image. 
+
+Since there are scaling issues in the reconstruction procedure (depending on the extent of overlap), the metric that we use is Structural Similarity Index (SSIM), which is scale invariant. The results are displayed in Figure \ref{fig:res_recons2} for the input image in Figure \ref{fig:res_recons1}.
+
+\begin{figure}[!t]
+	\centering
+	\subfloat[][Ground Truth]{\includegraphics[width = 0.25\textwidth]{resGT}} 
+	\subfloat[][Initial, SSIM=0.3517]{\includegraphics[width = 0.25\textwidth]{resIN}}
+	\caption{\sl Using 30\% samples (a) Ground truth (b) center image } \label{fig:res_recons1}
+\end{figure}
+
+\begin{figure}[!t]
+	\centering
+	\subfloat[][IERA, SSIM=0.3369]{\includegraphics[width = 0.25\textwidth]{resAM}} 
+	\subfloat[][Fourier, SSIM=0.5544]{\includegraphics[width = 0.25\textwidth]{resFS}} 
+	\subfloat[][Spatial, SSIM=0.8740]{\includegraphics[width = 0.25\textwidth]{resSS}}
+	\caption{\sl Using 30\% samples (a) reconstructed image using IERA (b) reconstructed image using CoPRAM with sparsity constraint in Fourier basis (c) reconstructed image using CoPRAM with sparsity constraint in spatial basis} \label{fig:res_recons2}
+\end{figure}
+\newpage
+\subsection{Subsampling using uniform random camera pattern}
+The IERA code allows for an option of turning some cameras on or off. We utilize this feature to test the robustness of our sparse recovery algorithm against theirs. We switch off $~50\%$ of the cameras (for this experiment, $38$ cameras are active, from $81$ total), where the camera locations are picked uniformly at random. The results are displayed in Figure \ref{fig:rc_recons2} for the input image in Figure \ref{fig:rc_recons1}.
+
+\begin{figure}[!t]
+	\centering
+	\subfloat[][Ground Truth]{\includegraphics[width = 0.25\textwidth]{resGT}} 
+	\subfloat[][Initial, SSIM=0.3927]{\includegraphics[width = 0.25\textwidth]{RcIN}}
+	\caption{\sl Using 50\% cameras (a) Ground truth (b) center image } \label{fig:rc_recons1}
+\end{figure}
+
+\begin{figure}[!t]
+	\centering
+	\subfloat[][IERA, SSIM=0.4225]{\includegraphics[width = 0.25\textwidth]{RcAM}} 
+	\subfloat[][Fourier, SSIM=0.5613]{\includegraphics[width = 0.25\textwidth]{RcFS}} 
+	\subfloat[][Spatial, SSIM=0.9053]{\includegraphics[width = 0.25\textwidth]{RcSS}}
+	\caption{\sl Using 50\% cameras (a) reconstructed image using IERA (b) reconstructed image using CoPRAM with sparsity constraint in Fourier basis (c) reconstructed image using CoPRAM with sparsity constraint in spatial basis} \label{fig:rc_recons2}
+\end{figure}
+
+We observed that enforcing sparsity in the spatial domain gives a better reconstruction.
+\subsection{Effect of decreased overlap}
+
+One of the issues of the implementation in \cite{holloway2016toward} is that they require consecutive camera arrays to have overlap with each other. This is physically impractical if one wants to implement a camera array in the same plane. However, with no camera overlap, their experiments perform poorly. However, enforcing a sparsity constraint improves quality of reconstruction. Note: we use all measurements in this set of experiments (no subsampling). For this experiment, we change the amount of overlap from $0.72$ to $0.12$. The results of this experiment are displayed in Figure \ref{fig:o_recons2} for the input image in Figure \ref{fig:o_recons1}.
+
+\begin{figure}[!t]
+	\centering
+	\subfloat[][Ground Truth]{\includegraphics[width = 0.25\textwidth]{resGT}} 
+	\subfloat[][Initial, SSIM=0.3674]{\includegraphics[width = 0.25\textwidth]{O1IN}}
+	\caption{\sl Using 0.12 overlap (a) Ground truth (b) center image } \label{fig:o_recons1}
+\end{figure}
+
+
+\begin{figure}[!h]
+	\centering
+	\subfloat[][IERA, SSIM=0.3088]{\includegraphics[width = 0.25\textwidth]{O1AM}} 
+	\subfloat[][Fourier, SSIM=0.3446]{\includegraphics[width = 0.25\textwidth]{O1FS}} 
+	\subfloat[][Spatial, SSIM=0.6124]{\includegraphics[width = 0.25\textwidth]{O1SS}}
+	\caption{\sl Using 0.12 overlap (a) reconstructed image using IERA (b) reconstructed image using CoPRAM with sparsity constraint in Fourier basis (c) reconstructed image using CoPRAM with sparsity constraint in spatial basis} \label{fig:o_recons2}
+\end{figure}
+
+We observed that enforcing sparsity in the spatial domain gives a better reconstruction.
+\newpage
+\subsection{Extension to block sparsity}
+Since we were able to demonstrate the advantage of sparse modeling towards reducing the number of samples required, we also extended this phase retrieval algorithm to cases where the image was block sparse (in the spatial domain). For this experiment, we synthetically generated a block sparse image, using the uniform random sub-sampling pattern described in \ref{subsec:exp1}, using an overlap of $0.12$ between adjacent cameras. The results of this experiment are displayed in Figure \ref{fig:b_recons2} for the input image in Figure \ref{fig:b_recons1}.
+
+\begin{figure}[!t]
+	\centering
+	\subfloat[][Ground Truth]{\includegraphics[width = 0.25\textwidth]{BGT}} 
+	\subfloat[][Initial, SSIM=0.99687]{\includegraphics[width = 0.25\textwidth]{BIN}}
+	\caption{\sl Using 0.12 overlap and 30\% samples (a) Ground truth (b) center image } \label{fig:b_recons1}
+\end{figure}
+
+
+\begin{figure}[!h]
+	\centering
+	\subfloat[][IERA, SSIM=0.99665]{\includegraphics[width = 0.25\textwidth]{BAM}} 
+	\subfloat[][Spatial, SSIM=0.99995]{\includegraphics[width = 0.25\textwidth]{BSS}}
+	\subfloat[][Block, SSIM=0.99998]{\includegraphics[width = 0.25\textwidth]{BBS}} 
+	\caption{\sl Using 0.12 overlap and 30\% samples (a) reconstructed image using IERA (b) reconstructed image using CoPRAM with sparsity constraint in spatial basis (c) reconstructed image using CoPRAM with \textbf{block} sparsity constraint in spatial basis} \label{fig:b_recons2}
+\end{figure}
+
+We observed a better reconstruction when we enforce the block sparsity constraint.
+\section{Conclusion}
+In conclusion, we demonstrate that by enforcing sparsity constraints in the reconstruction procedure, we are able to reproduce good quality high-resolution images from diffraction-blurred images, using fewer samples. This also translates to lower operational costs of the imaging procedure. 
+
+
+\section*{Acknowledgment}
+We would like to thank the authors of \cite{holloway2016toward} for making their code available online and for other inputs.
+
+\bibliographystyle{unsrt}
+\bibliography{biblio}
+  
+\end{document}
