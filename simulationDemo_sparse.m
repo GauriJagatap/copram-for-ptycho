@@ -10,7 +10,7 @@ addpath('Utils')
 
 %% check to see which input parameters have been provided
 if ~exist('dataset','var') || isempty(dataset)
-    dataset = 'block';
+    dataset = 'resChart2'; %'block'
 end
 if ~exist('apDia','var') || isempty(apDia)
     apDia = 57.5;%72.75;
@@ -89,6 +89,7 @@ elseif f<1 || strcmp(subsampling,'randpix')
     ind = randperm(m,fn);
     y_subvec = zeros(m,1); y_subvec(ind) = yvec(ind); y_sub = reshape(y_subvec,[h w N*N]);
     P_op = zeros(h,w,N*N); P_op(ind) = 1;
+    Cen = ceil(N*N/2);
 end
 
 %% noise

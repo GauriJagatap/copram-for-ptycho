@@ -10,7 +10,7 @@ addpath('Utils')
 
 %% check to see which input parameters have been provided
 if ~exist('dataset','var') || isempty(dataset)
-    dataset = 'block';
+    dataset = 'resChart2'; %'block'
 end
 if ~exist('apDia','var') || isempty(apDia)
     apDia = 57.5;
@@ -75,7 +75,7 @@ fprintf('Creating the input data cube\n');
 
 %% random pixel subsampling
 m = h*w*N*N;
-f = 1;%0.02; %fraction of samples to be used
+f = 0.2;%0.02 for block.mat; %fraction of samples to be used
 if f==1 || strcmp(subsampling,'randcam')
     Num = nnz(opts.samplingPattern);
     Cen = nnz(opts.samplingPattern(1:ceil(opts.nX*opts.nY/2)));    
@@ -88,6 +88,7 @@ elseif f<1 || strcmp(subsampling,'randpix')
     ind = randperm(m,fn);
     y_subvec = zeros(m,1); y_subvec(ind) = yvec(ind); y_sub = reshape(y_subvec,[h w N*N]);
     P_op = zeros(h,w,N*N); P_op(ind) = 1;
+    Cen = ceil(N*N/2);
 end
 
 %% noise
@@ -101,7 +102,7 @@ y(y<0)=0; % input cannot be negative (avoid noise causing a negative signal)
 %% recover the high resolution image
 nn = (h+floor(spacing*(N-1)))*(w+floor(spacing*(N-1))); 
 n = h*w; 
-sf = 0.1; %estimated sparsity
+sf = 0.25; %0.1 for block.mat %estimated sparsity
 s = floor(sf*nn);
 
 %% 
