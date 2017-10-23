@@ -5,7 +5,7 @@ close all force
 
 %% make sure the functions are located on MATLAB's path
 setupPtych;
-addpath('../data')
+addpath('data')
 addpath('Utils')
 
 %% check to see which input parameters have been provided

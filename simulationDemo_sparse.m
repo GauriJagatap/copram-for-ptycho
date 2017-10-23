@@ -5,7 +5,7 @@ close all force
 
 %% make sure the functions are located on MATLAB's path
 setupPtych;
-addpath('../data')
+addpath('data')
 addpath('Utils')
 
 %% check to see which input parameters have been provided
@@ -60,7 +60,7 @@ opts.apertureShift = spacing;
 opts.apDia = apDia;
 opts.pupilType = 'circle';
 opts.basis = 'block'; %sparsity in 'spatial' or 'block' or 'fourier' basis
-subsampling = 'randcam'; % 'randcam' for random cameras, 'randpix' for random pixels
+subsampling = 'randpix'; % 'randcam' for random cameras, 'randpix' for random pixels
 
 if strcmp(subsampling,'randpix')
     opts.samplingPattern = ones(opts.nX,opts.nY); %pattern 1
@@ -76,7 +76,7 @@ fprintf('Creating the input data cube\n');
 
 %% random pixel subsampling
 m = h*w*N*N;
-f = 0.02; %fraction of samples to be used
+f = 0.2;%0.02 for block.mat; %fraction of samples to be used
 if f==1 || strcmp(subsampling,'randcam')
     Num = nnz(opts.samplingPattern);
     Cen = nnz(opts.samplingPattern(1:ceil(opts.nX*opts.nY/2)));
@@ -103,7 +103,7 @@ y(y<0)=0; % input cannot be negative (avoid noise causing a negative signal)
 %% recover the high resolution image
 nn = (h+floor(spacing*(N-1)))*(w+floor(spacing*(N-1))); 
 n = h*w; 
-sf = 0.1; %estimated sparsity
+sf = 0.25; %0.1 for block.mat %estimated sparsity
 s = floor(sf*nn);
 
 %% 
