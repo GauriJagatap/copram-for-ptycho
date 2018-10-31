@@ -36,10 +36,48 @@ if ndims(data.ims)==5
     data.ims = createHDR(data.ims);
 end
 
-
-
 fprintf('Recovering the high resolution image\n');
-recov = ptychMain(data.ims,data.apDia,data.spacing,data.nIts,[],data.tau);
+%data.nIts
+if ~exist('samplingPattern','var') || isempty(samplingPattern)
+    if ndims(data.ims)~=4
+        error('If no sampling pattern is specified, the input images must be 4 dimensional');
+    end
+    
+    % all images are on a square grid
+    [~,~,nY,nX] = size(data.ims);
+    samplingPattern = ones(nY,nX); 
+end
+
+[nY,nX] = size(samplingPattern);
+[h,w,~] = size(data.ims);
+opts.imHeight = h; opts.imWidth = w; opts.nX = nX; opts.nY = nY;
+opts.samplingPattern = samplingPattern;
+opts.apertureShift = data.spacing; opts.apDia = data.apDia;
+opts.pupilType = 'circle';
+[samplingIndices,pupil2,hROW,hCOL] = getSampling(opts);
+N = hROW;
+y = data.ims;
+%% random pixel subsampling
+m = h*w*N*N;
+f = 1;%0.02 for block.mat; %fraction of samples to be used
+subsampling = 'randpix';
+if f==1 || strcmp(subsampling,'randcam')
+    Num = nnz(opts.samplingPattern);
+    Cen = nnz(opts.samplingPattern(1:ceil(opts.nX*opts.nY/2)));
+    P_op = ones(h,w,Num);
+    y_sub = y;
+    f = 1;
+elseif f<1 || strcmp(subsampling,'randpix')
+    fn = ceil(f*m);
+    yvec = y(:);
+    ind = randperm(m,fn);
+    y_subvec = zeros(m,1); y_subvec(ind) = yvec(ind); y_sub = reshape(y_subvec,[h w N*N]);
+    P_op = zeros(h,w,N*N); P_op(ind) = 1;
+    Cen = ceil(N*N/2);
+end
+
+recov = ptychMain(data.ims,'spatial',data.apDia,data.spacing,62,samplingPattern,pupil2,samplingIndices,P_op);
+%recov = ptychMain(data.ims,data.apDia,data.spacing,62,[],data.tau);
 
 % compare the input center image and the recovered image
 dispRecov = ifft2(ifftshift(recov));

@@ -37,7 +37,7 @@ end
 hROW = h+floor(spacing*(nX-1));
 hCOL = w+floor(spacing*(nY-1));
 
-
+nn = hROW*hCOL;
 sl = ceil(s*(h*w)/(hROW*hCOL));
 if strcmp(basis,'block')
     Jb = 4;%48; %breadth of block for padded image, set to 48 for block.mat
@@ -61,7 +61,8 @@ case 'fourier'
     x = xInit;
 case {'spatial','block'}  
     % get initial estimate
-    lowresMean = sqrt(mean(mean(y.^2,3),4));
+%     lowresMean = sqrt(mean(mean(y.^2,3),4)/(nX*nY));
+    lowresMean = mean(mean(y,3),4);    
     %%
     center = fftshift(fft2(lowresMean))/sqrt(h*w);
     xInit = padarray(center,floor([(hROW-h)/2 (hCOL-w)/2]));
@@ -78,29 +79,33 @@ end
 f1 = figure('numbertitle','off','units','normalized','outerposition',[0 0 1 1]);
 drawnow;
 
+method = 'sparta';
 for ii = 1:nIts
     
     if mod(ii,2)==1 || ii==nIts
         fprintf('N: %02d Iteration: %04d\n',nX,ii);
     end
     
-    % compute y = A*x
-    y0 = f_hp(x); 
-    
-    % enforce magnitude measurements
-    y0 = y0./abs(y0+eps).*y;
-    
-    % update x estimate: x = A'*y
-    nn = hROW*hCOL;
-    x_hist = x;
-    
-    switch basis
-        case {'spatial','fourier'}
-            x = cosamp_fun(y0, f_hp, ft_hp, nn, s, 10);
-        case 'block'
-            x = jsmp_fun(y0, f_hp, ft_hp, nn, floor(s/(Jb*Jh)),Jh,Jb, 10); %height x breadth of block
+    if strcmp(method,'altmin')
+        % compute y = A*x
+        y0 = f_hp(x); 
+
+        % enforce magnitude measurements
+        y0 = y0./abs(y0+eps).*y;
+
+        % update x estimate: x = A'*y
+        x_hist = x;
+
+        switch basis
+            case {'spatial','fourier'}
+                x = cosamp_fun(y0, f_hp, ft_hp, nn, s, 10);
+            case 'block'
+                x = jsmp_fun(y0, f_hp, ft_hp, nn, floor(s/(Jb*Jh)),Jh,Jb, 10); %height x breadth of block
+        end
+    elseif strcmp(method,'sparta')
+        x_hist = x;
+        x = SparTA_descent(x,y,f_hp,ft_hp,nn,s,10,1e-3,1e-5);
     end
-    
     rel_err = 1e-4;
     if norm(x-x_hist)/norm(x) < rel_err
         fprintf('met relative error tolerance condition\n');
