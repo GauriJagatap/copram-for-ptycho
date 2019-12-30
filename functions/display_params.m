@@ -1,4 +1,4 @@
-function [dispRecov, dispInit, dispRecovF, ssimm] = display_params(gt,inputim,recov,init,n,lb,ub,basis)
+function [dispRecov, dispInit, dispRecovF, ssimm] = display_params(gt,inputim,recov,init,n,lb,ub,basis,expt)
 
     switch basis
         case {'fourier','none'}
@@ -18,10 +18,7 @@ function [dispRecov, dispInit, dispRecovF, ssimm] = display_params(gt,inputim,re
     dgt = double(gt);
     ssimmC = ssim(inputim,dgt);
     ssimm = ssim(double(dispRecov),dgt);
-    if strcmp(basis,'none')
-        fprintf('SSIM - no model:%2.8f\n',ssimm);
-    else
-        fp = ['SSIM - ',basis,' sparsity:%2.8f\n'];
-        fprintf(fp,ssimm);
-    end
+
+    fp = ['SSIM - basis:',basis,', model:',expt,':%2.8f\n'];
+    fprintf(fp,ssimm);
 end

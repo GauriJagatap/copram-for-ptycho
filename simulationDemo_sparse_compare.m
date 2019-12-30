@@ -75,7 +75,7 @@ fprintf('Creating the input data cube\n');
 
 %% random pixel subsampling
 m = h*w*N*N;
-f = 0.2;%0.02 for block.mat; %fraction of samples to be used
+f = 0.6;%0.02 for block.mat; %fraction of samples to be used
 if f==1 || strcmp(subsampling,'randcam')
     Num = nnz(opts.samplingPattern);
     Cen = nnz(opts.samplingPattern(1:ceil(opts.nX*opts.nY/2)));    
@@ -123,8 +123,8 @@ fprintf('Recovering high resolution image - fourier sparsity\n');
 
 %% 
 fprintf('Recovering high resolution image - no model\n');
-
-[recovAM initAM] = ptychMain(y_sub,'fourier',apDia,spacing,nIts,opts.samplingPattern,pupil,samplingIndices,P_op);
+model = 'fourier'; %fourier (default) or spatial
+[recovAM initAM] = ptychMain(y_sub,model,apDia,spacing,nIts,opts.samplingPattern,pupil,samplingIndices,P_op);
 
 %% display the ground truth, input, and recovered magnitudes
 nn = sqrt(nn);
@@ -134,10 +134,10 @@ ub = lb-1+w;
 inputim = y_sub(:,:,Cen); % extract the center image
 inputim = double(sqrt(inputim)); % display the magnitude of the observation (not the squared magnitude)
 
-[dispRecovS, dispInitS, dispRecovFS, ssimmS] = display_params(gt,inputim,recovS,initS,n,lb,ub,'spatial');
-[dispRecov_F, dispInitF, dispRecovFF, ssimmF] = display_params(gt,inputim,recovF,initF,n,lb,ub,'fourier');
-[dispRecovB, dispInitB, dispRecovFB, ssimmB] = display_params(gt,inputim,recovB,initB,n,lb,ub,'block');
-[dispRecovAM, dispInitAM, dispRecovFAM, ssimmAM] = display_params(gt,inputim,recovAM,initAM,n,lb,ub,'none');
+[dispRecovS, dispInitS, dispRecovFS, ssimmS] = display_params(gt,inputim,recovS,initS,n,lb,ub,'spatial','sparsity');
+[dispRecov_F, dispInitF, dispRecovFF, ssimmF] = display_params(gt,inputim,recovF,initF,n,lb,ub,'fourier','sparsity');
+[dispRecovB, dispInitB, dispRecovFB, ssimmB] = display_params(gt,inputim,recovB,initB,n,lb,ub,'block','block sparsity');
+[dispRecovAM, dispInitAM, dispRecovFAM, ssimmAM] = display_params(gt,inputim,recovAM,initAM,n,lb,ub,model,'none');
 
 display_result(gt,inputim,dispRecovS,dispRecovFS,'CoPRAM',ssimmS,sf,'spatial')
 display_result(gt,inputim,dispRecov_F,dispRecovFF,'CoPRAM',ssimmF,sf,'fourier')

@@ -24,7 +24,7 @@ setupPtych;
 
 
 if ~exist('dataset','var') || isempty(dataset)
-    dataset = 'realData\USAF';
+    dataset = 'realData/USAF';
 end
 
 fprintf('Loading data\n');
@@ -36,10 +36,37 @@ if ndims(data.ims)==5
     data.ims = createHDR(data.ims);
 end
 
+y= data.ims;
+[h,w,nX,nY] = size(y);
+subsampling = 'randpix'; % 'randcam' for random cameras, 'randpix' for random pixels
+if strcmp(subsampling,'randpix')
+    samplingPattern = ones(nX,nY); %pattern 1
+elseif strcmp (subsampling,'randcam')
+%% random camera subsampling
+    samplingPattern = randi([0 1],nY,nX) ; %pattern 2, not to be used with random pixel sampling
+	samplingPattern(ceil(nX*nY/2)) = samplingPattern(ceil(nX*nY/2)) || 1; %pattern 2
+end
 
+%% random pixel subsampling
+m = h*w*nX*nY;
+f = 0.1;%0.02 for block.mat; %fraction of samples to be used
+if f==1 || strcmp(subsampling,'randcam')
+    Num = nnz(samplingPattern);
+    Cen = nnz(samplingPattern(1:ceil(nX*nY/2)));    
+    P_op = ones(h,w,Num);
+    y_sub = y;
+    f=1;
+elseif f<1 || strcmp(subsampling,'randpix')
+    fn = ceil(f*m);
+    yvec = y(:);
+    ind = randperm(m,fn);
+    y_subvec = zeros(m,1); y_subvec(ind) = yvec(ind); y_sub = reshape(y_subvec,[h w nX*nY]);
+    P_op = zeros(h,w,nX*nY); P_op(ind) = 1;
+    Cen = ceil(nY*nX/2);
+end
 
 fprintf('Recovering the high resolution image\n');
-recov = ptychMain(data.ims,data.apDia,data.spacing,data.nIts,[],data.tau);
+recov = ptychMain(y_sub,'fourier',data.apDia,data.spacing,data.nIts,samplingPattern,[],[],P_op,data.tau);
 
 % compare the input center image and the recovered image
 dispRecov = ifft2(ifftshift(recov));
